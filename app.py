@@ -652,6 +652,10 @@ def main():
         layout="wide"
     )
     
+    # Initialize session manager dan restore data
+    session_manager = get_session_manager()
+    restore_session()
+    
     # Initialize database
     init_database()
     
@@ -1333,5 +1337,43 @@ def main():
         else:
             st.info("No historical logs available.")
 
-if __name__ == '__main__':
+    # Session management footer
+    with st.expander("💾 Session Management", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.subheader("📊 Session Info")
+            session_info = session_manager.get_session_info()
+            st.json(session_info)
+        
+        with col2:
+            st.subheader("🧹 Cleanup")
+            if st.button("🗑️ Clean Old Sessions"):
+                cleaned = session_manager.cleanup_old_sessions(24)
+                st.success(f"✅ Cleaned {cleaned} old sessions")
+            
+            if st.button("🔄 Clear Current Session"):
+                clear_broadcast_from_session()
+                st.success("✅ Current session cleared")
+        
+        with col3:
+            st.subheader("💾 Backup")
+            if st.button("📤 Export Session"):
+                export_data = session_manager.export_session()
+                if export_data:
+                    st.download_button(
+                        "💾 Download Session Backup",
+                        export_data,
+                        f"session_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        "application/json"
+                    )
+            
+            uploaded_session = st.file_uploader("📥 Import Session", type=['json'])
+            if uploaded_session:
+                session_json = uploaded_session.read().decode('utf-8')
+                imported_id = session_manager.import_session(session_json)
+                if imported_id:
+                    st.success(f"✅ Session imported: {imported_id}")
+
+if __name__ == "__main__":
     main()
